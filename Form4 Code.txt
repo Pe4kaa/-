@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.SqlServerCe;
+using System.Data.SqlClient;
+
+namespace Учет_спецодежды_SQL_
+{
+    public partial class Form4 : Form
+    {
+        private SqlCeDataAdapter adapter;
+        private DataTable table;
+        private DataBase database = new DataBase();
+
+        public Form4()
+        {
+            InitializeComponent();
+            StartPosition = FormStartPosition.CenterScreen;
+        }
+
+        private void Form4_Load(object sender, EventArgs e)
+        {
+            database.openConnection();
+
+            adapter = new SqlCeDataAdapter("SELECT Id_user, login_user, pas_user, is_admin FROM registration", database.getConnection());
+
+            var builder = new SqlCeCommandBuilder(adapter);
+
+            table = new DataTable();
+            adapter.Fill(table);
+
+            dataGridView1.DataSource = table;
+        }
+
+        private void Form4_FormClosing(object sender, FormClosingEventArgs e)
+        {
+
+            adapter.Update(table);
+
+            database.closeConnection();
+        }
+
+        private void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.ColumnIndex == dataGridView1.Columns["is_admin"].Index)
+            {
+
+                dataGridView1.EndEdit();
+
+
+                adapter.Update(table);
+            }
+        }
+
+        private void dataGridView1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete)
+            {
+
+                var selectedRows = dataGridView1.SelectedRows;
+
+
+                foreach (DataGridViewRow row in selectedRows)
+                {
+                    var index = row.Index;
+                    var id = (int)row.Cells["Id_user"].Value;
+
+                    table.Rows.RemoveAt(index);
+
+
+                    using (var command = new SqlCeCommand("DELETE FROM registration WHERE Id_user=@id", database.getConnection()))
+                    {
+                        command.Parameters.AddWithValue("@id", id);
+                        command.ExecuteNonQuery();
+                    }
+                }
+
+                adapter.Update(table);
+            }
+        }
+    }
+}

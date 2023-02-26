@@ -1,0 +1,348 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.Entity;
+using System.Data.SqlServerCe;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using ToolTip = System.Windows.Forms.ToolTip;
+
+namespace Учет_спецодежды_SQL_
+{
+    public partial class Form3 : Form
+    {
+        DataBase database = new DataBase();
+        int selectedRow;
+        public Form3()
+        {
+            InitializeComponent();
+            StartPosition = FormStartPosition.CenterScreen;
+        }
+
+        
+
+        private void CreateColumns()
+        {
+            dataGridView1.Columns.Add("Id", "Id");
+            dataGridView1.Columns.Add("ФИО", "ФИО");
+            dataGridView1.Columns.Add("Дата_рождения", "Дата рождения");
+            dataGridView1.Columns.Add("Должность", "Должность");
+            dataGridView1.Columns.Add("Адрес", "Адрес");
+            dataGridView1.Columns.Add("IsNew", String.Empty);
+        }
+
+        private void ReadSingleRow(DataGridView dgw, IDataRecord record)
+        {
+            dgw.Rows.Add(record.GetInt32(0), record.GetString(1), record.GetString(2), record.GetString(3), record.GetString(4), RowState.ModifedNew);
+        }
+
+        private void RefreshDataGrid(DataGridView dgw)
+        {
+            dgw.Rows.Clear();
+            string queryString = $"SELECT * FROM сотрудники";
+
+            SqlCeCommand command = new SqlCeCommand(queryString, database.getConnection());
+            database.openConnection();
+            SqlCeDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                ReadSingleRow(dgw, reader);
+            }
+            reader.Close();
+        }
+        private void Form3_Load(object sender, EventArgs e)
+        {
+           CreateColumns();
+           RefreshDataGrid(dataGridView1);
+
+            ToolTip buttonToolTip = new ToolTip();
+            buttonToolTip.SetToolTip(button1, "Открытие окна для создание новой записи в таблицу");
+
+            ToolTip buttonToolTip2 = new ToolTip();
+            buttonToolTip.SetToolTip(button2, "Применение внесенных изменений");
+
+            ToolTip buttonToolTip3 = new ToolTip();
+            buttonToolTip.SetToolTip(button3, "Сохранение данных в таблице");
+
+            ToolTip buttonToolTip4 = new ToolTip();
+            buttonToolTip.SetToolTip(button4, "Удалие выделенной строки в таблице");
+
+            ToolTip buttonToolTip5 = new ToolTip();
+            buttonToolTip.SetToolTip(button6, "Копирование выделенной ячейки");
+
+            ToolTip buttonToolTip6 = new ToolTip();
+            buttonToolTip.SetToolTip(button5, "Снятие выделения со строки");
+
+        }
+        private void dataGridView1_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                panel3.Visible = true;
+            }
+        }
+
+        private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            selectedRow = e.RowIndex;
+            if (e.RowIndex >= 0)
+            {
+                DataGridViewRow row = dataGridView1.Rows[selectedRow];
+
+                textBox1.Text = row.Cells[0].Value.ToString();
+                textBox2.Text = row.Cells[1].Value.ToString();
+                textBox3.Text = row.Cells[2].Value.ToString();
+
+                DateTime dateValue;
+                if (DateTime.TryParse(row.Cells[3].Value.ToString(), out dateValue))
+                {
+                    dateTimePicker1.Value = dateValue;
+                }
+                else
+                {
+                    dateTimePicker1.Value = DateTime.Now;
+                }
+
+                textBox4.Text = row.Cells[4].Value.ToString();
+
+                panel3.Visible = false;
+                label11.Visible = false;
+            }
+        }
+
+        private void UpdateDB()
+        {
+            database.openConnection();
+
+            for (int index = 0; index < dataGridView1.Rows.Count; index++)
+            {
+                var rowState = (RowState)dataGridView1.Rows[index].Cells[5].Value;
+
+                if (rowState == RowState.Existed)
+                {
+                    continue;
+                }
+
+
+                if (rowState == RowState.Deleted)
+                {
+                    var id = Convert.ToInt32(dataGridView1.Rows[index].Cells[0].Value);
+                    var deleteQuery = $"DELETE FROM сотрудники WHERE id = {id}";
+
+                    SqlCeCommand command2 = new SqlCeCommand(deleteQuery, database.getConnection());
+                    command2.ExecuteNonQuery();
+                }
+                if (rowState == RowState.Modifed)
+                {
+                    var id = dataGridView1.Rows[index].Cells[0].Value.ToString();
+                    var fio = dataGridView1.Rows[index].Cells[1].Value.ToString();
+                    var dr = dataGridView1.Rows[index].Cells[2].Value.ToString();
+                    var dolj = dataGridView1.Rows[index].Cells[3].Value.ToString();
+                    var adres = dataGridView1.Rows[index].Cells[4].Value.ToString();
+                    
+
+                    var changeQuery = $"UPDATE сотрудники SET ФИО = '{fio}', Дата_рождения = '{dr}', Должность = '{dolj}', Адрес = '{adres}' WHERE Id = '{id}'";
+
+                    var command3 = new SqlCeCommand(changeQuery, database.getConnection());
+                    command3.ExecuteNonQuery();
+                }
+                //return;
+            }
+            database.closeConnection();
+        }
+
+        private void deleteRow()
+        {
+            int index = dataGridView1.CurrentCell.RowIndex;
+            dataGridView1.Rows[index].Visible = false;
+            if (dataGridView1.Rows[index].Cells[0].Value.ToString() == string.Empty)
+            {
+                dataGridView1.Rows[index].Cells[5].Value = RowState.Deleted;
+                return;
+            }
+            dataGridView1.Rows[index].Cells[5].Value = RowState.Deleted;
+        }
+
+        private void Change()
+        {
+            var selectedRowIndex = dataGridView1.CurrentCell.RowIndex;
+
+            var fio = textBox2.Text;
+            var dr = dateTimePicker1.Value.ToString("dd.MM.yyyy");
+            var dolj = textBox3.Text;
+            var adres = textBox4.Text;
+            int id;
+
+            if (dataGridView1.Rows[selectedRowIndex].Cells[0].Value.ToString() != string.Empty)
+            {
+                if (int.TryParse(textBox1.Text, out id))
+                {
+                    dataGridView1.Rows[selectedRowIndex].SetValues(id, fio, dr, dolj, adres);
+                    dataGridView1.Rows[selectedRowIndex].Cells[5].Value = RowState.Modifed;
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось редактировать запись! ID должен иметь числовой формат", "Ошибка!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+
+        }
+        private void button5_Click(object sender, EventArgs e)
+        {
+
+            textBox1.Clear();
+            textBox2.Clear();
+            textBox3.Clear();
+            textBox4.Clear();
+            dateTimePicker1.ResetText();
+            dataGridView1.CurrentCell = null;
+            panel3.Visible = true;
+            label11.Visible = true;
+
+        }
+        private void button6_Click(object sender, EventArgs e)
+        {
+            if (dataGridView1.SelectedCells.Count > 0)
+            {
+                string selectedText = dataGridView1.SelectedCells[0].Value.ToString();
+                Clipboard.SetText(selectedText);
+            }
+        }
+
+        private void Search(DataGridView dataGridView)
+        {
+            try
+            {
+                string searchTerm = textBox5.Text.Trim();
+
+                dataGridView.Rows.Clear();
+
+                if (string.IsNullOrEmpty(searchTerm))
+                {
+                    string selectString = "SELECT * FROM сотрудники";
+
+                    using (SqlCeConnection connection = new SqlCeConnection("Data Source=|DataDirectory|Uchet.sdf"))
+                    {
+                        connection.Open();
+                        using (SqlCeDataAdapter adapter = new SqlCeDataAdapter(selectString, connection))
+                        {
+                            using (SqlCeResultSet resultSet = adapter.SelectCommand.ExecuteResultSet(ResultSetOptions.Scrollable))
+                            {
+                                while (resultSet.Read())
+                                {
+                                    ReadSingleRow(dataGridView, resultSet);
+                                }
+                            }
+                        }
+                        connection.Close();
+                    }
+                }
+                else
+                {
+                    string selectString = "SELECT * FROM сотрудники WHERE ";
+                    string[] columns = new string[] { "Id", "ФИО", "Дата_рождения", "Должность", "Адрес" };
+                    for (int i = 0; i < columns.Length; i++)
+                    {
+                        selectString += $"{columns[i]} LIKE @searchTerm";
+                        if (i < columns.Length - 1)
+                        {
+                            selectString += " OR ";
+                        }
+                    }
+
+                    using (SqlCeConnection connection = new SqlCeConnection("Data Source=|DataDirectory|Uchet.sdf"))
+                    {
+                        connection.Open();
+                        using (SqlCeDataAdapter adapter = new SqlCeDataAdapter(selectString, connection))
+                        {
+                            adapter.SelectCommand.Parameters.AddWithValue("@searchTerm", $"%{searchTerm}%");
+                            using (SqlCeResultSet resultSet = adapter.SelectCommand.ExecuteResultSet(ResultSetOptions.Scrollable))
+                            {
+                                while (resultSet.Read())
+                                {
+                                    ReadSingleRow(dataGridView, resultSet);
+                                }
+                            }
+                        }
+                        connection.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+
+            this.Close();
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            new2 new2 = new new2();
+            new2.Show();
+        }
+
+        private void pictureBox5_Click(object sender, EventArgs e)
+        {
+            RefreshDataGrid(dataGridView1);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Change();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            UpdateDB();
+        }
+
+        private void button6_Click_1(object sender, EventArgs e)
+        {
+            if (dataGridView1.SelectedCells.Count > 0)
+            {
+                string selectedText = dataGridView1.SelectedCells[0].Value.ToString();
+                Clipboard.SetText(selectedText);
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            deleteRow();
+        }
+
+        private void button5_Click_1(object sender, EventArgs e)
+        {
+            textBox1.Clear();
+            textBox2.Clear();
+            textBox3.Clear();
+            textBox4.Clear();
+            dateTimePicker1.ResetText();
+            dataGridView1.CurrentCell = null;
+            panel3.Visible = true;
+            label11.Visible = true;
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void textBox5_TextChanged(object sender, EventArgs e)
+        {
+            Search(dataGridView1);
+        }
+    }
+}

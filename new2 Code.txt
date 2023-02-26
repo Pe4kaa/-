@@ -1,0 +1,56 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.Entity;
+using System.Data.SqlServerCe;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+
+namespace Учет_спецодежды_SQL_
+{
+    public partial class new2 : Form
+    {
+        DataBase database = new DataBase();
+        public new2()
+        {
+            InitializeComponent();
+            StartPosition = FormStartPosition.CenterScreen;
+        }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void new2_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            database.openConnection();
+
+            var fio = textBox1.Text;
+            var date = dateTimePicker1.Value.ToString("dd.MM.yyyy");
+            var dolj = textBox2.Text;
+            var adres = textBox5.Text;
+
+
+
+                var addQuery = $"INSERT INTO сотрудники (ФИО, Дата_рождения, Должность, Адрес) VALUES ('{fio}', '{date}', '{dolj}', '{adres}')";
+                var command = new SqlCeCommand(addQuery, database.getConnection());
+                command.ExecuteNonQuery();
+
+                MessageBox.Show("Запись создана!", "Успешно!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            database.closeConnection();
+        }
+    }
+    
+}

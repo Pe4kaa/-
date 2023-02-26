@@ -1,0 +1,83 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.SqlServerCe;
+
+namespace Учет_спецодежды_SQL_
+{
+    public partial class Form2 : Form
+    {
+        DataBase database = new DataBase();
+        public Form2()
+        {
+            InitializeComponent();
+            StartPosition = FormStartPosition.CenterScreen;
+        }
+
+        private void Form2_Load(object sender, EventArgs e)
+        {
+
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+
+
+            var login = textBox1.Text;
+            var pas = textBox2.Text;
+            string queryreg = $"insert into registration(login_user, pas_user) values('{login}', '{pas}')"; 
+            SqlCeCommand commandreg= new SqlCeCommand(queryreg, database.getConnection());
+            database.openConnection();
+            if (commandreg.ExecuteNonQuery() == 1)
+            {
+                MessageBox.Show("Аккаунт зарегистрирован!", "Успех!");
+                Form2 frm2 = new Form2();
+                this.Close();
+
+            }
+            else
+            {
+                MessageBox.Show("Не удалось зарегистрировать аккаунт", "Ошибка!");
+            }
+            database.closeConnection();
+
+        }
+
+        private Boolean chek()
+        { 
+            var loginUser = textBox1.Text;
+            var pasUser = textBox2.Text;    
+
+            SqlCeDataAdapter adapter = new SqlCeDataAdapter();
+            DataTable table = new DataTable();
+            String check = $"select login_user, pas_user from registration where login_user = '{loginUser}', pas_user = '{pasUser}'";
+
+            SqlCeCommand chekcom = new SqlCeCommand(check, database.getConnection());
+
+            adapter.SelectCommand= chekcom;
+            adapter.Fill(table);
+
+            if (table.Rows.Count > 0)
+            {
+                MessageBox.Show("Такой пользователь уже существует!", "Ошибка!");
+                return true;
+            }
+            else 
+            { 
+                return false; 
+            }
+        }
+        private void pictureBox2_Click(object sender, EventArgs e)
+        {
+            textBox1.Text = "";
+            textBox2.Text = "";
+        }
+    }
+}

@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.SqlServerCe;
+using System.Data.SqlClient;
+using System.Data.Entity;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
+
+namespace Учет_спецодежды_SQL_
+{
+    public partial class New : Form
+    {
+        DataBase database = new DataBase();
+        AutoCompleteStringCollection autoCompleteCollection = new AutoCompleteStringCollection();
+
+        public New()
+        {
+            InitializeComponent();
+            StartPosition = FormStartPosition.CenterScreen;
+
+            database.openConnection();
+            var query = "SELECT ФИО FROM сотрудники";
+            var command = new SqlCeCommand(query, database.getConnection());
+            var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                comboBox1.Items.Add(reader["ФИО"]);
+                autoCompleteCollection.Add(reader["ФИО"].ToString());
+            }
+            database.closeConnection();
+
+            comboBox1.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            comboBox1.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            comboBox1.AutoCompleteCustomSource = autoCompleteCollection;
+        }
+
+        private void New_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            database.openConnection();
+
+            var fio = comboBox1.SelectedItem.ToString();
+            var dolj = textBox2.Text;
+            var podr = textBox3.Text;
+            var date = dateTimePicker1.Value.ToString("dd.MM.yyyy");
+            int size;
+            var type = textBox6.Text;
+
+            if (int.TryParse(textBox5.Text, out size))
+            {
+                var addQuery = $"INSERT INTO срок_службы (ФИО, Должность, Подразделение, Дата_поступления, Размеры, Тип) VALUES ('{fio}', '{dolj}', '{podr}', '{date}', '{size}', '{type}')";
+                var command = new SqlCeCommand(addQuery, database.getConnection());
+                command.ExecuteNonQuery();
+
+                MessageBox.Show("Запись создана!", "Успешно!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show("Не удалось создать запись! Размеры должны иметь числовой формат", "Ошибка!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            database.closeConnection();
+        }
+
+        public void FillData(DataGridViewRow selectedRow)
+        {
+
+            comboBox1.Text = selectedRow.Cells[1].Value.ToString();
+            textBox2.Text = selectedRow.Cells[2].Value.ToString();
+            textBox3.Text = selectedRow.Cells[3].Value.ToString();
+            dateTimePicker1.Text = selectedRow.Cells[4].Value.ToString();
+            textBox5.Text = selectedRow.Cells[5].Value.ToString();
+            textBox6.Text = selectedRow.Cells[6].Value.ToString();
+
+        }
+    }
+}
